@@ -8,7 +8,7 @@ XB-Plugin-Section: multimedia
 
 Package: openmediavault-mpd
 Architecture: all
-Depends: openmediavault (>= 1.12), mpd (>= 0.16.7), mpc, ${misc:Depends}
+Depends: openmediavault (>= 2.1), mpd (>= 0.16.7), mpc, ${misc:Depends}
 Description:  Music Player Daemon
  Music Player Daemon (MPD) is a server that allows remote access for
  playing audio files (Ogg-Vorbis, FLAC, MP3, Wave, and AIFF), streams
