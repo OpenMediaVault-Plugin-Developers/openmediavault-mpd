@@ -10,8 +10,9 @@ case "$1" in
 	# Disable MPD by default
 	if [ -z "$2" ]; then
                         echo "Updating init script links and actions"
-                        invoke-rc.d --force mpd stop
-                        update-rc.d mpd disable &>/dev/null
+                        # deb-systemd-invoke stop mpd || :
+                        deb-systemd-helper disable mpd.service || :
+                        deb-systemd-helper disable mpd.socket || :
         fi
 
         SERVICE_XPATH_NAME="mpd"
