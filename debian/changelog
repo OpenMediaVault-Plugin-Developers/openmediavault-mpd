@@ -1,9 +1,15 @@
-openmediavault-mpd (1.0.2) UNRELEASED; urgency=low
+openmediavault-mpd (1.0.3) stable; urgency=high
+
+  * Maintenance branch for OMV 2.x - adjusted control for incompatibility with OMV 3.0.
+
+ -- OpenMediaVault Plugin Developers <plugins@omv-extras.org>  Wed, 03 Feb 2016 08:38:16 +0000
+
+openmediavault-mpd (1.0.2) stable; urgency=low
 
   * Adjust dependency to require OMV 2.1 or later.
   * Update package description.
 
- -- OpenMediaVault Plugin Developers <plugins@omv-extras.org>  Fri, 06 Nov 2015 09:50:45 +0000
+ -- OpenMediaVault Plugin Developers <plugins@omv-extras.org>  Wed, 03 Feb 2016 08:38:11 +0000
 
 openmediavault-mpd (1.0.1) stable; urgency=low
 
