@@ -2,13 +2,13 @@ Source: openmediavault-mpd
 Section: sound
 Priority: optional
 Maintainer: OpenMediaVault Plugin Developers <plugins@omv-extras.org>
-Build-Depends: debhelper (>= 9)
+Build-Depends: debhelper (>= 9), dh-systemd
 Standards-Version: 3.9.6
 XB-Plugin-Section: multimedia
 
 Package: openmediavault-mpd
 Architecture: all
-Depends: openmediavault (>= 2.1), mpd (>= 0.16.7), mpc, ${misc:Depends}
+Depends: openmediavault (>= 3.0), mpd (>= 0.16.7), mpc, init-system-helpers, ${misc:Depends}
 Description:  OpenMediaVault MPD (Music Player Daemon) plugin
  Music Player Daemon (MPD) is a server that allows remote access for
  playing audio files (Ogg-Vorbis, FLAC, MP3, Wave, and AIFF), streams

@@ -31,6 +31,17 @@ require_once "openmediavault/util.inc";
 
 class OMVRpcServiceMpd extends OMVRpcServiceAbstract
 {
+    private $rpcServiceName = "MPD";
+    private $moduleName = "mpd";
+
+    private $configXPath = "/config/services/mpd";
+    private $audioOutputsXPath = "/config/services/mpd/audiooutputs";
+    private $individualAudioOutputXPath = "/config/services/mpd/audiooutputs/audiooutput";
+
+    private $eventMessagePath = "org.openmediavault.services.mpd";
+    private $audioOutputEventMessagePath = "org.openmediavault.services.mpd.audiooutputs.audiooutput";
+
+
     /**
      * Get the name of the RPC service.
      *
@@ -38,48 +49,9 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
      */
     public function getName()
     {
-        return "MPD";
+        return $this->rpcServiceName;
     }
 
-    /**
-     * Get the name of the plugin (lowercase).
-     *
-     * @return string
-     */
-    private function getPluginName()
-    {
-        return strtolower($this->getName());
-    }
-
-    /**
-     * Get the service configuration XPath.
-     *
-     * @return string
-     */
-    private function getXPath()
-    {
-        return sprintf("//services/%s", $this->getPluginName());
-    }
-
-    /**
-     * Get the audio outputs configuration XPath.
-     *
-     * @return string
-     */
-    private function getAudioOutputsXpath()
-    {
-        return sprintf("%s/audiooutputs", $this->getXPath());
-    }
-
-    /**
-     * Get an individual audio output configuration XPath.
-     *
-     * @return string
-     */
-    private function getAudioOutputXpath()
-    {
-        return sprintf("%s/audiooutput", $this->getAudioOutputsXpath());
-    }
 
     /**
      * Get an individual audio output configuration XPath by UUID
@@ -90,7 +62,7 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
     {
         return sprintf(
             "%s[uuid='%s']",
-            $this->getAudioOutputXPath(),
+            $this->individualAudioOutputXPath,
             $uuid
         );
     }
@@ -102,28 +74,9 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
      */
     private function getSharedFolderXPathByUuid($uuid)
     {
-        return sprintf("//system/shares/sharedfolder[uuid='%s']", $uuid);
+        return sprintf("/config/system/shares/sharedfolder[uuid='%s']", $uuid);
     }
 
-    /**
-     * Get the main event message path.
-     *
-     * @return string
-     */
-    private function getEventMessagePath()
-    {
-        return sprintf("org.openmediavault.services.%s", $this->getPluginName());
-    }
-
-    /**
-     * Get the audio output event message path.
-     *
-     * @return string
-     */
-    private function getAudioOutputEventMessagePath()
-    {
-        return sprintf("%s.audiooutputs.audiooutput", $this->getEventMessagePath());
-    }
 
     /**
      * Initialize the RPC service.
@@ -161,12 +114,12 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
         ));
 
         // Get configuration object
-        $object = $xmlConfig->get($this->getXpath());
+        $object = $xmlConfig->get($this->configXPath);
 
         if (is_null($object)) {
             throw new OMVException(
                 OMVErrorMsg::E_CONFIG_GET_OBJECT_FAILED,
-                $this->getXpath()
+                $this->configXPath
             );
         }
 
@@ -248,50 +201,50 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
         );
 
         // Get the existing configuration object.
-        $oldObject = $xmlConfig->get($this->getXPath());
+        $oldObject = $xmlConfig->get($this->configXPath);
 
         if (is_null($oldObject))
         {
             throw new OMVException(
                 OMVErrorMsg::E_CONFIG_GET_OBJECT_FAILED,
-                $this->getXPath()
+                $this->configXPath
             );
         }
 
         // Prepare configuration data
         $object = array(
-            "enable"                            => array_boolval($params, "enable"),
+            "enable"                            => boolval($params["enable"]),
             "bind_to_address"                   => $params['bind_to_address'],
             "port"                              => $params['port'],
             "log_level"                         => $params['log_level'],
-            "enable_music_dir"                  => array_boolval($params, "enable_music_dir"),
+            "enable_music_dir"                  => boolval($params["enable_music_dir"]),
             "music_directory"                   => $params['music_directory'],
-            "auto_update"                       => array_boolval($params, "auto_update"),
-            "follow_outside_symlinks"           => array_boolval($params, "follow_outside_symlinks"),
-            "follow_inside_symlinks"            => array_boolval($params, "follow_inside_symlinks"),
-            "enable_playlist_dir"               => array_boolval($params, "enable_playlist_dir"),
+            "auto_update"                       => boolval($params["auto_update"]),
+            "follow_outside_symlinks"           => boolval($params["follow_outside_symlinks"]),
+            "follow_inside_symlinks"            => boolval($params["follow_inside_symlinks"]),
+            "enable_playlist_dir"               => boolval($params["enable_playlist_dir"]),
             "playlist_directory"                => $params['playlist_directory'],
-            "save_absolute_paths_in_playlists"  => array_boolval($params, "save_absolute_paths_in_playlists"),
-            "password_required"                 => array_boolval($params, "password_required"),
+            "save_absolute_paths_in_playlists"  => boolval($params["save_absolute_paths_in_playlists"]),
+            "password_required"                 => boolval($params["password_required"]),
             "password"                          => $params['password'],
-            "enable_replaygain"                 => array_boolval($params, "enable_replaygain"),
+            "enable_replaygain"                 => boolval($params["enable_replaygain"]),
             "replaygain"                        => $params['replaygain'],
             "replaygain_preamp"                 => $params['replaygain_preamp'],
             "replaygain_missing_preamp"         => $params['replaygain_missing_preamp'],
-            "replaygain_limit"                  => array_boolval($params, "replaygain_limit"),
-            "volume_normalization"              => array_boolval($params, "volume_normalization"),
-            "gapless_mp3_playback"              => array_boolval($params, "gapless_mp3_playback"),
+            "replaygain_limit"                  => boolval($params["replaygain_limit"]),
+            "volume_normalization"              => boolval($params["volume_normalization"]),
+            "gapless_mp3_playback"              => boolval($params["gapless_mp3_playback"]),
             "buffer_before_play"                => $params['buffer_before_play'],
-            "restore_paused"                    => array_boolval($params, "restore_paused"),
+            "restore_paused"                    => boolval($params["restore_paused"]),
             "extra_options"                     => $params['extra_options'],
             "audiooutputs"                      => isset($oldObject["audiooutputs"]) ? $oldObject["audiooutputs"] : array()
         );
 
         // Set configuration object
-        if (false === $xmlConfig->replace($this->getXpath(), $object)) {
+        if (false === $xmlConfig->replace($this->configXPath, $object)) {
             throw new OMVException(
                 OMVErrorMsg::E_CONFIG_SET_OBJECT_FAILED,
-                $this->getXpath()
+                $this->configXPath
             );
         }
 
@@ -299,7 +252,7 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
         $dispatcher = &OMVNotifyDispatcher::getInstance();
         $dispatcher->notify(
             OMV_NOTIFY_MODIFY,
-            $this->getEventMessagePath(),
+            $this->eventMessagePath,
             $object
         );
 
@@ -341,12 +294,12 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
       );
 
       // Get the configuration object.
-      $audiooutputs = $xmlConfig->getList($this->getAudioOutputXPath());
+      $audiooutputs = $xmlConfig->getList($this->individualAudioOutputXPath);
 
       if (is_null($audiooutputs)) {
           throw new OMVException(
               OMVErrorMsg::E_CONFIG_GET_OBJECT_FAILED,
-              $this->getAudioOutputXPath()
+              $this->individualAudioOutputXPath
           );
       }
 
@@ -451,9 +404,9 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
           "name"                => $params["name"],
           "type"                => $params["type"],
           "format"              => $params["format"],
-          "enabled"             => array_boolval($params, "enabled"),
-          "tags"                => array_boolval($params, "tags"),
-          "always_on"           => array_boolval($params, "always_on"),
+          "enabled"             => boolval($params["enabled"]),
+          "tags"                => boolval($params["tags"]),
+          "always_on"           => boolval($params["always_on"]),
           "mixer_type"          => $params["mixer_type"],
           "replaygain_handler"  => $params["replaygain_handler"],
           "extra_options"       => $params["extra_options"]
@@ -467,7 +420,7 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
           // Check for unique name
           $xPath = sprintf(
               "%s[name='%s']",
-              $this->getAudioOutputXpath(),
+              $this->individualAudioOutputXPath,
               $params["name"]
           );
 
@@ -478,7 +431,7 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
               );
 
           // Append the configuration object.
-          $success = $xmlConfig->set($this->getAudioOutputsXpath(), array("audiooutput" => $ao));
+          $success = $xmlConfig->set($this->audioOutputsXPath, array("audiooutput" => $ao));
       }
       else
       {
@@ -498,7 +451,7 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
 
       $dispatcher->notify(
           ($params["uuid"] == $GLOBALS["OMV_UUID_UNDEFINED"]) ? OMV_NOTIFY_CREATE : OMV_NOTIFY_MODIFY,
-          $this->getAudioOutputEventMessagePath(),
+          $this->audioOutputEventMessagePath,
           $ao
       );
 
@@ -537,7 +490,7 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
       // Delete the configuration object.
       $ao = $this->deleteConfigObjectByPath(
           $this->getAudioOutputXPathByUuid($params["uuid"]),
-          $this->getAudioOutputEventMessagePath()
+          $this->audioOutputEventMessagePath
       );
 
       // Return the deleted configuration object.
@@ -567,17 +520,17 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
             array( "role" => OMV_ROLE_ADMINISTRATOR )
         );
 
-        if ($this->isModuleDirty($this->getPluginName())) {
+        if ($this->isModuleDirty($this->moduleName)) {
                 throw new OMVException(OMVErrorMsg::E_CONFIG_DIRTY);
         }
 
-        $object = $xmlConfig->get($this->getXPath());
+        $object = $xmlConfig->get($this->configXPath);
 
         if (is_null($object))
         {
             throw new OMVException(
                 OMVErrorMsg::E_CONFIG_GET_OBJECT_FAILED,
-                $this->getXPath()
+                $this->configXPath
             );
         }
 
@@ -613,5 +566,3 @@ class OMVRpcServiceMpd extends OMVRpcServiceAbstract
 // Register the RPC service.
 $rpcServiceMgr = &OMVRpcServiceMgr::getInstance();
 $rpcServiceMgr->registerService(new OMVRpcServiceMpd());
-
-?>

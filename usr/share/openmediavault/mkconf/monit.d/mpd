@@ -31,19 +31,19 @@ OMV_MONIT_SERVICE_MPD_MODE=${OMV_MONIT_SERVICE_MPD_MODE:-"active"}
 OMV_MPD_GENERAL_PIDFILE=${OMV_MPD_GENERAL_PIDFILE:-"/run/mpd/pid"}
 
 rm -f ${OMV_MONIT_SERVICE_MPD_CONFIG}
-[ "$(omv_config_get "//services/mpd/enable")" = "0" ] && exit 0
+[ "$(omv_config_get "/config/services/mpd/enable")" = "0" ] && exit 0
 
 cat <<EOF > ${OMV_MONIT_SERVICE_MPD_CONFIG}
 check process mpd with pidfile ${OMV_MPD_GENERAL_PIDFILE}
-  start program = "/etc/init.d/mpd start"
-  stop program = "/etc/init.d/mpd stop"
+  start program = "/bin/systemctl start mpd.service"
+  stop program = "/bin/systemctl stop mpd.service"
   mode ${OMV_MONIT_SERVICE_MPD_MODE}
 EOF
 
 # Disable event notifications.
-xmlstarlet sel -t -m "//system/email" \
+xmlstarlet sel -t -m "/config/system/email" \
   -i "enable = '1'" \
-        -i "//system/notification/notifications/monitprocevents = '0'" \
+        -i "/config/system/notification/notifications/monitprocevents = '0'" \
           -v "concat('  noalert ',primaryemail)" \
         -b \
   -b \

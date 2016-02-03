@@ -24,69 +24,50 @@
 
 require_once "openmediavault/config.inc";
 require_once "openmediavault/error.inc";
-require_once "openmediavault/initscript.inc";
+require_once "openmediavault/systemctl.inc";
 require_once "openmediavault/module.inc";
 require_once "openmediavault/util.inc";
-require_once("openmediavault/monit.inc");
-require_once("openmediavault/log.inc");
+require_once "openmediavault/monit.inc";
+require_once "openmediavault/log.inc";
 
 class OMVModuleMpd extends OMVModuleServiceAbstract implements
     OMVIModuleServiceStatus,
     OMVINotifyListener
 {
+    private $moduleName = "mpd";
+    private $systemdServiceName = "mpd.service";
+
+    private $configXPath = "/config/services/mpd";
+    private $audioOutputsXPath = "/config/services/mpd/audiooutputs";
+    private $individualAudioOutputXPath = "/config/services/mpd/audiooutputs/audiooutput";
+
+    private $eventMessagePath = "org.openmediavault.services.mpd";
+    private $audioOutputEventMessagePath = "org.openmediavault.services.mpd.audiooutputs.audiooutput";
+
+
     /**
      * Get the name of the module.
      *
      * @return string
      */
-    public function getName()
-    {
-        return "mpd";
-    }
+    public function getName()  { return $this->moduleName; }
+
 
     /**
      * Defines the modules that if present should start before the service
      * provided by this module.
      * @return An array of modules.
      */
-    public function shouldStart() { return array("monit"); }
+    public function shouldStart()  { return array("monit"); }
+
 
     /**
      * Defines the modules that if present should be stopped after the
      * service provided by this module.
      * @return An array of modules.
      */
-    function shouldStop() { return array("monit"); }
+    function shouldStop()  { return array("monit"); }
 
-    /**
-     * Get the service configuration XPath.
-     *
-     * @return string
-     */
-    private function getXPath()
-    {
-        return sprintf("//services/%s", $this->getName());
-    }
-
-    /**
-     * Get the audio outputs configuration XPath.
-     *
-     * @return string
-     */
-    private function getAudioOutputsXpath()
-    {
-        return sprintf("%s/audiooutputs", $this->getXPath());
-    }
-
-    /**
-     * Get an individual audio output configuration XPath.
-     *
-     * @return string
-     */
-    private function getAudioOutputXpath()
-    {
-        return sprintf("%s/audiooutput", $this->getAudioOutputsXpath());
-    }
 
     /**
      * Get an individual audio output configuration XPath by UUID
@@ -102,35 +83,6 @@ class OMVModuleMpd extends OMVModuleServiceAbstract implements
         );
     }
 
-    /**
-     * Get the main event message path.
-     *
-     * @return string
-     */
-    private function getEventMessagePath()
-    {
-        return sprintf("org.openmediavault.services.%s", $this->getName());
-    }
-
-    /**
-     * Get the audio output event message path.
-     *
-     * @return string
-     */
-    private function getAudioOutputEventMessagePath()
-    {
-        return sprintf("%s.audiooutputs.audiooutput", $this->getEventMessagePath());
-    }
-
-    /**
-     * Get the shared folder event message path.
-     *
-     * @return string
-     */
-     private function getSharedFolderEventMessagePath()
-     {
-         return "org.openmediavault.system.shares.sharedfolder";
-     }
 
     /**
      * Helper function to find out whether the given shared folder
@@ -156,22 +108,31 @@ class OMVModuleMpd extends OMVModuleServiceAbstract implements
     {
         global $xmlConfig;
 
-        $object = $xmlConfig->get($this->getXpath());
+        $object = $xmlConfig->get($this->configXPath);
 
         if (is_null($object)) {
             throw new OMVException(
                 OMVErrorMsg::E_CONFIG_GET_OBJECT_FAILED,
-                $this->getXpath()
+                $this->configXPath
             );
         }
 
-        $monit = new OMVMonit();
+        $monit = new OMVMonit($this->getName());
         return array(
             "name" => $this->getName(),
             "title" => gettext("MPD"),
             "enabled" => boolval($object["enable"]),
-            "running" => ($monit->status($this->getName()) === "running")
+            "running" => $monit->isRunning()
         );
+        /*
+        $systemCtl = new OMVSystemCtl($this->systemdServiceName);
+        return [
+            "name" => $this->getName(),
+            "title" => gettext("Skeleton"),
+            "enabled" => boolval($object["enable"]),
+            "running" => $systemCtl->isActive()
+        ];
+        */
     }
 
     /**
@@ -193,12 +154,12 @@ class OMVModuleMpd extends OMVModuleServiceAbstract implements
             );
         }
 
-        $object = $xmlConfig->get($this->getXPath());
+        $object = $xmlConfig->get($this->configXPath);
 
         if (is_null($object)) {
             throw new OMVException(
                 OMVErrorMsg::E_CONFIG_GET_OBJECT_FAILED,
-                $this->getXPath()
+                $this->configXPath
             );
         }
 
@@ -206,8 +167,8 @@ class OMVModuleMpd extends OMVModuleServiceAbstract implements
             return;
         }
 
-        $initd = new OMVSysVInitScript($this->getName());
-        $initd->invoke("force-reload");
+        $systemCtl = new OMVSystemCtl($this->systemdServiceName);
+        $systemCtl->restart();
     }
 
     /**
@@ -219,12 +180,12 @@ class OMVModuleMpd extends OMVModuleServiceAbstract implements
     {
         global $xmlConfig;
 
-        $object = $xmlConfig->get($this->getXpath());
+        $object = $xmlConfig->get($this->configXPath);
 
         if (is_null($object)) {
             throw new OMVException(
                 OMVErrorMsg::E_CONFIG_GET_OBJECT_FAILED,
-                $this->getXpath()
+                $this->configXPath
             );
         }
 
@@ -232,13 +193,15 @@ class OMVModuleMpd extends OMVModuleServiceAbstract implements
             return;
         }
 
-        // Start this service and register System-V style init script.
-        $initd = new OMVSysVInitScript($this->getName(), true);
-        $initd->exec();
+        // Start this service and enable the unit file.
+       $systemCtl = new OMVSystemCtl($this->systemdServiceName);
+       $systemCtl->enable(TRUE);
+       // Wait to allow the service to start.
+       sleep(1);
 
         // Enable monitoring of this service.
-    		$monit = new OMVMonit();
-    		$monit->monitor("mpd");
+        $monit = new OMVMonit($this->getName());
+        $monit->monitor();
     }
 
     /**
@@ -249,11 +212,11 @@ class OMVModuleMpd extends OMVModuleServiceAbstract implements
     public function stopService()
     {
         // Disable monitoring of this service.
-        $monit = new OMVMonit();
-        $monit->unmonitor("mpd", TRUE);
-        // Stop this service and unregister System-V style init script.
-        $initd = new OMVSysVInitScript($this->getName());
-        $initd->exec();
+        $monit = new OMVMonit($this->getName());
+        $monit->unmonitor(TRUE);
+        // Stop this service and disable the unit file.
+        $systemCtl = new OMVSystemCtl($this->systemdServiceName);
+        $systemCtl->disable(TRUE);
     }
 
     /**
@@ -265,27 +228,27 @@ class OMVModuleMpd extends OMVModuleServiceAbstract implements
     {
         $dispatcher->addListener(
             OMV_NOTIFY_MODIFY,
-            $this->getEventMessagePath(),
+            $this->eventMessagePath,
             array($this, "setDirty")
         );
 
         $dispatcher->addListener(
             OMV_NOTIFY_CREATE | OMV_NOTIFY_MODIFY | OMV_NOTIFY_DELETE,
-            $this->getAudioOutputEventMessagePath(),
+            $this->audioOutputEventMessagePath,
             array($this, "setDirty")
         );
 
         $dispatcher->addListener(
             OMV_NOTIFY_MODIFY,
-            $this->getSharedFolderEventMessagePath(),
+            "org.openmediavault.system.shares.sharedfolder",
             array($this, "onModifySharedFolder")
         );
 
         $moduleMgr = &OMVModuleMgr::getInstance();
         $dispatcher->addListener(
-      		  OMV_NOTIFY_MODIFY,
-      		  $this->getEventMessagePath(),
-      		  array($moduleMgr->getModule("monit"), "setDirty")
+                OMV_NOTIFY_MODIFY,
+                $this->eventMessagePath,
+                array($moduleMgr->getModule("monit"), "setDirty")
         );
     }
 }
@@ -304,12 +267,10 @@ OMVLogFile::registerType("mpd", array(
   "filepath" => "/var/log/mpd/mpd.log",
   "regex" => "/^(\S+\s+\d{2}\s+\d{2}:\d{2})\s:\s(\S+):\s+(.*)$/",
   "columns" => array(
-	  "date" => array(
-		  "index" => 1,
-		  "func" => create_function('$v', 'return strpdate($v,"M d H:i");')
-	  ),
-	  "domain" => 2,
-	  "message" => 3
+      "date" => array(
+          "index" => 1,
+          "func" => create_function('$v', 'return strpdate($v,"M d H:i");')
+      ),
+      "domain" => 2,
+      "message" => 3
   )));
-
-?>

@@ -1,4 +1,10 @@
-openmediavault-mpd (1.0.2) UNRELEASED; urgency=low
+openmediavault-mpd (2.0) stable; urgency=medium
+
+  * Internal changes for OMV 3.0 (Debian 8 with systemd).
+
+ -- OpenMediaVault Plugin Developers <plugins@omv-extras.org>  Wed, 03 Feb 2016 08:31:24 +0000
+
+openmediavault-mpd (1.0.2) stable; urgency=low
 
   * Adjust dependency to require OMV 2.1 or later.
   * Update package description.
